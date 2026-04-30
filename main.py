@@ -1,269 +1,127 @@
 import streamlit as st
-import sqlite3
-import pandas as pd
-from datetime import datetime, timedelta
-import uuid
-import os
-import random
-import streamlit.components.v1 as components
 
-# --- CONFIGURACIÓN BASE DE DATOS ---
-DB_NAME = "ilusion_v14.db"
+st.set_page_config(page_title="Executive Calculator", page_icon="⚖️", layout="centered")
 
-def init_db():
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS inventario 
-                          (producto TEXT, modelo TEXT, color TEXT, talla TEXT, 
-                           stock INTEGER, p_compra REAL, p_venta REAL, imagen TEXT,
-                           PRIMARY KEY (modelo, color, talla))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS ventas 
-                          (transaccion_id TEXT, fecha TEXT, hora TEXT, producto TEXT, modelo TEXT, 
-                           color TEXT, talla TEXT, cantidad INTEGER, p_venta REAL, total REAL, estado TEXT)''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS apartados 
-                          (id TEXT, cliente TEXT, fecha TEXT, producto TEXT, modelo TEXT, 
-                           color TEXT, talla TEXT, cantidad INTEGER, estado TEXT)''')
-        conn.commit()
-
-def run_query(query, params=()):
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        conn.commit()
-
-def get_df(query, params=()):
-    with sqlite3.connect(DB_NAME) as conn:
-        return pd.read_sql_query(query, conn, params=params)
-
-# --- FUNCIÓN PARA CARGAR 50 DATOS ÚNICOS ---
-def cargar_50_datos():
-    # Lista de 50 nombres de productos totalmente diferentes
-    productos_unicos = [
-        "Bra Push Up Encaje", "Panty Clásico Algodón", "Faja Reductora Abdomen", "Pijama Seda Dos Piezas", 
-        "Baby Doll Transparencia", "Bra Deportivo Alto Impacto", "Body Encaje Floral", "Top Juvenil Algodón", 
-        "Bóxer Dama Microfibra", "Camisón Satin Largo", "Corset Elegance Negro", "Leggings Control Total", 
-        "Bralette Encaje Suave", "Panty Invisible Laser", "Faja Postparto Reforzada", "Tanga Algodón Elástico", 
-        "Short Nocturno Satin", "Bata de Baño Afelpada", "Bra Sin Costuras Confort", "Body Shaper Moldeador", 
-        "Cachetero Encaje Lujo", "Top Básico Tirantes", "Bra Strapless Silicon", "Panty Corte Alto", 
-        "Bustier Vintage Blanco", "Faja Tipo Short", "Pijama Térmica Invierno", "Negligee Bordado", 
-        "Bra Maternidad Lactancia", "Tanga de Hilo Satin", "Body de Red Moderno", "Minifalda Dormir Seda", 
-        "Bra Media Copa", "Panty Semicachetero", "Cinturilla de Avispa", "Bata Corta Translúcida", 
-        "Bra de Copas Blandas", "Short Deportivo Ajustado", "Pijama de Short y Top", "Camiseta Interior Seda", 
-        "Bra con Varilla Reforzada", "Panty Postoperatorio", "Faja Chaleco Neopreno", "Body Manga Larga Encaje", 
-        "Top de Yoga Transpirable", "Bóxer Largo Descanso", "Bra de Cobertura Total", "Tanga con Pedrería", 
-        "Pijama Estampada Algodón", "Bata Kimono Satín"
-    ]
+# --- DISEÑO ELGANTE GAMA ALTA (CSS) ---
+st.markdown("""
+    <style>
+    /* Fondo Obsidiana */
+    .stApp {
+        background-color: #050505;
+    }
     
-    colores = ["Negro", "Blanco", "Nude", "Rojo", "Azul Marino", "Rosa Pastel", "Vino", "Gris Acero", "Marfil", "Verde Esmeralda"]
-    tallas = ["CH", "M", "G", "XG", "32B", "34B", "36B", "38B", "40C"]
-    
-    datos_inventario = []
-    
-    # Usamos un bucle for sobre la lista de 50 productos para asegurar que cada uno sea diferente
-    for i in range(50):
-        prod = productos_unicos[i]
-        mod = f"MOD-{100 + i}" # Modelos únicos del 100 al 149
-        col = random.choice(colores)
-        tal = random.choice(tallas)
-        stock = random.randint(5, 50)
-        p_compra = round(random.uniform(90.0, 450.0), 2)
-        p_venta = round(p_compra * 1.6, 2)
-        
-        datos_inventario.append((prod, mod, col, tal, stock, p_compra, p_venta, ""))
+    .block-container {
+        max-width: 480px !important;
+        padding: 2.5rem !important;
+        background-color: #0a0a0a;
+        border-radius: 30px;
+        border: 1px solid #1a1a1a;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.9);
+        margin-top: 20px;
+    }
 
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.executemany('INSERT OR REPLACE INTO inventario VALUES (?,?,?,?,?,?,?,?)', datos_inventario)
-        conn.commit()
+    /* Pantalla Minimalista de Lujo */
+    .calc-display {
+        background-color: #000000;
+        color: #fdfdfd;
+        font-size: 75px;
+        text-align: right;
+        padding: 40px 20px;
+        border-radius: 20px;
+        font-family: 'Helvetica Neue', sans-serif;
+        font-weight: 200;
+        margin-bottom: 30px;
+        min-height: 140px;
+        letter-spacing: -3px;
+        border-bottom: 1px solid #222;
+    }
 
-# --- FUNCIÓN DE IMPRESIÓN ---
-def ejecutar_impresion(html_content):
-    unique_id = str(uuid.uuid4())[:8]
-    component_script = f"""
-    <div id="ticket-{unique_id}" style="display:none;">{html_content}</div>
-    <script>
-        (function() {{
-            var content = document.getElementById('ticket-{unique_id}').innerHTML;
-            var win = window.open('', 'PRINT', 'height=600,width=400');
-            win.document.write('<html><head><title>Imprimir</title></head><body>' + content + '</body></html>');
-            win.document.close();
-            win.focus();
-            win.print();
-            win.close();
-        }})();
-    </script>
-    """
-    components.html(component_script, height=0)
+    /* BOTONES XL - OCUPAN TODO EL ESPACIO */
+    .stButton > button {
+        width: 100% !important;
+        height: 90px !important; 
+        font-size: 26px !important;
+        font-weight: 300 !important;
+        background-color: #111111 !important;
+        color: #ffffff !important;
+        border: 1px solid #222 !important;
+        border-radius: 18px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    }
 
-def generar_ticket_html(titulo, id_doc, items, total, cliente=None):
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-    rows = "".join([f"<tr><td>{it['modelo']}</td><td align='center'>{it['cantidad']}</td><td align='right'>${it['subtotal']:,.2f}</td></tr>" for it in items])
-    return f"""
-    <div style="font-family: 'Courier New', monospace; width: 250px; padding: 10px; background: white; color: black; border: 1px solid #ddd;">
-        <center><h2 style="margin:0;">ILUSIÓN</h2><p style="font-size:12px; margin:0;">Punto de Venta</p></center>
-        <hr>
-        <p style="font-size:11px;"><b>{titulo}</b>: #{id_doc}<br><b>Fecha:</b> {fecha}</p>
-        {f'<p style="font-size:11px;"><b>Cliente:</b> {cliente}</p>' if cliente else ''}
-        <table style="width:100%; font-size:10px;">
-            {rows}
-        </table>
-        <hr><h3 align="right">TOTAL: ${total:,.2f}</h3>
-    </div>
-    """
+    /* Efecto al pasar el mouse (Sutil y Elegante) */
+    .stButton > button:hover {
+        background-color: #1a1a1a !important;
+        border-color: #c5a059 !important; /* Brillo Dorado sutil */
+        color: #c5a059 !important;
+        transform: translateY(-3px);
+    }
 
-# --- INICIALIZACIÓN ---
-st.set_page_config(page_title="Ilusion Pro V14", layout="wide")
-init_db()
+    /* Operadores en Oro Mate */
+    div[data-testid="stHorizontalBlock"] div:last-child .stButton > button {
+        background: linear-gradient(145deg, #c5a059, #8e6d31) !important;
+        color: #000 !important;
+        border: none !important;
+        font-weight: 500 !important;
+    }
 
-if 'carrito' not in st.session_state: st.session_state.carrito = []
-if 'ticket_a_imprimir' not in st.session_state: st.session_state.ticket_a_imprimir = None
+    /* Botón AC (Gris Ceniza) */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(2) div:first-child .stButton > button {
+        color: #666 !important;
+    }
 
-# --- NAVEGACIÓN ---
-st.sidebar.title("SISTEMA ILUSION")
-menu = [" Inventario", " Punto de Venta", " Apartados", " Corte de Caja", " Historial", " Admin", " Respaldos"]
-choice = st.sidebar.selectbox("Opciones", menu)
+    /* Ajuste de Grid */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 15px !important;
+        margin-bottom: 15px !important;
+    }
 
-if st.session_state.ticket_a_imprimir:
-    ejecutar_impresion(st.session_state.ticket_a_imprimir)
-    st.session_state.ticket_a_imprimir = None
+    #MainMenu, footer, header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- LÓGICA DE SECCIONES ---
+# --- LÓGICA CORE ---
+if 'calc_val' not in st.session_state:
+    st.session_state.calc_val = "0"
 
-if choice == " Inventario":
-    st.header("Inventario de Prendas")
-    df_inv = get_df("SELECT * FROM inventario")
-    if df_inv.empty:
-        st.warning("El inventario está vacío.")
-        if st.button(" Cargar 50 productos diferentes"):
-            cargar_50_datos()
-            st.rerun()
+def click_button(label):
+    actual = st.session_state.calc_val
+    if label == "AC":
+        st.session_state.calc_val = "0"
+    elif label == "=":
+        try:
+            expr = actual.replace('×', '*').replace('÷', '/')
+            res = eval(expr)
+            # Formato elegante para números largos
+            st.session_state.calc_val = f"{res:g}" if isinstance(res, float) else str(res)
+        except:
+            st.session_state.calc_val = "Error"
     else:
-        st.dataframe(df_inv, use_container_width=True)
+        if actual == "0" or actual == "Error":
+            st.session_state.calc_val = str(label)
+        else:
+            if len(actual) < 10:
+                st.session_state.calc_val += str(label)
 
-elif choice == " Punto de Venta":
-    st.header("Nueva Operación")
-    df_inv = get_df("SELECT * FROM inventario WHERE stock > 0")
-    
-    if not df_inv.empty:
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            mod_sel = st.selectbox("Modelo", sorted(df_inv['modelo'].unique()))
-            df_f = df_inv[df_inv['modelo'] == mod_sel]
-            col_sel = st.selectbox("Color", sorted(df_f['color'].unique()))
-            df_f = df_f[df_f['color'] == col_sel]
-            talla_sel = st.selectbox("Talla", sorted(df_f['talla'].unique()))
-            item = df_f[df_f['talla'] == talla_sel].iloc[0]
-            
-            st.info(f"Producto: {item['producto']} | Stock: {item['stock']} | Precio: ${item['p_venta']:,.2f}")
-            cant = st.number_input("Cantidad", 1, int(item['stock']))
-            
-            if st.button(" Agregar al Carrito", use_container_width=True):
-                st.session_state.carrito.append({
-                    'producto': item['producto'], 'modelo': item['modelo'], 'color': item['color'],
-                    'talla': item['talla'], 'cantidad': int(cant), 'precio': float(item['p_venta']), 'subtotal': float(item['p_venta']*cant)
-                })
-                st.rerun()
-            
-            if st.button(" Limpiar Todo", type="secondary", use_container_width=True):
-                st.session_state.carrito = []
-                st.rerun()
+# Título Estético
+st.markdown("<p style='text-align:center; color:#444; letter-spacing:5px; font-size:12px;'>PREMIUM CALCULATOR</p>", unsafe_allow_html=True)
 
-        with c2:
-            if st.session_state.carrito:
-                st.subheader("Resumen de Venta")
-                st.table(pd.DataFrame(st.session_state.carrito)[['producto', 'modelo', 'talla', 'cantidad', 'subtotal']])
-                total_v = sum(i['subtotal'] for i in st.session_state.carrito)
-                if st.button(f" Finalizar e Imprimir (${total_v:,.2f})", type="primary", use_container_width=True):
-                    t_id = str(uuid.uuid4())[:8].upper()
-                    now = datetime.now()
-                    for i in st.session_state.carrito:
-                        run_query("INSERT INTO ventas VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
-                                  (t_id, now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), i['producto'], i['modelo'], i['color'], i['talla'], i['cantidad'], i['precio'], i['subtotal'], "COMPLETADA"))
-                        run_query("UPDATE inventario SET stock = stock - ? WHERE modelo=? AND color=? AND talla=?", (i['cantidad'], i['modelo'], i['color'], i['talla']))
-                    st.session_state.ticket_a_imprimir = generar_ticket_html("TICKET VENTA", t_id, st.session_state.carrito, total_v)
-                    st.session_state.carrito = []
-                    st.rerun()
-    else:
-        st.error("No hay stock disponible en el inventario.")
+# Pantalla
+st.markdown(f'<div class="calc-display">{st.session_state.calc_val}</div>', unsafe_allow_html=True)
 
-elif choice == " Apartados":
-    st.header("Control de Apartados")
-    df_inv = get_df("SELECT * FROM inventario WHERE stock > 0")
-    if not df_inv.empty:
-        with st.form("ap_f"):
-            cli = st.text_input("Nombre de la Clienta")
-            df_inv['lbl'] = df_inv['producto'] + " (" + df_inv['modelo'] + ")"
-            sel = st.selectbox("Prenda", df_inv['lbl'])
-            cnt = st.number_input("Cant", 1)
-            if st.form_submit_button("Guardar Apartado"):
-                r = df_inv[df_inv['lbl'] == sel].iloc[0]
-                ap_id = "AP-" + str(uuid.uuid4())[:4].upper()
-                run_query("INSERT INTO apartados VALUES (?,?,?,?,?,?,?,?,?)", (ap_id, cli, datetime.now().strftime("%Y-%m-%d"), r['producto'], r['modelo'], r['color'], r['talla'], cnt, "ACTIVO"))
-                run_query("UPDATE inventario SET stock = stock - ? WHERE modelo=? AND color=? AND talla=?", (cnt, r['modelo'], r['color'], r['talla']))
-                st.session_state.ticket_a_imprimir = generar_ticket_html("VALE APARTADO", ap_id, [{'modelo': r['modelo'], 'cantidad': cnt, 'subtotal': r['p_venta']*cnt}], r['p_venta']*cnt, cliente=cli)
-                st.success("Apartado registrado")
-                st.rerun()
-    else:
-        st.info("No hay productos disponibles para apartar.")
+# Grid de botones XL
+filas = [
+    ['AC', '+/-', '%', '÷'],
+    ['7', '8', '9', '×'],
+    ['4', '5', '6', '-'],
+    ['1', '2', '3', '+'],
+    ['0', '.', '=']
+]
 
-elif choice == " Corte de Caja":
-    st.header("Corte de Caja y Utilidades")
-    periodo = st.radio("Seleccione Periodo:", ["Hoy", "Esta Semana", "Este Mes"], horizontal=True)
-    hoy = datetime.now()
-    if periodo == "Hoy": f_inicio = hoy.strftime("%Y-%m-%d")
-    elif periodo == "Esta Semana": f_inicio = (hoy - timedelta(days=hoy.weekday())).strftime("%Y-%m-%d")
-    else: f_inicio = hoy.strftime("%Y-%m-01")
-    
-    query_corte = """
-        SELECT v.*, i.p_compra 
-        FROM ventas v 
-        LEFT JOIN inventario i ON v.modelo = i.modelo AND v.color = i.color AND v.talla = i.talla
-        WHERE v.fecha >= ? AND v.estado = 'COMPLETADA'
-    """
-    df_corte = get_df(query_corte, (f_inicio,))
-    
-    if not df_corte.empty:
-        total_ventas = df_corte['total'].sum()
-        total_costos = (df_corte['cantidad'] * df_corte['p_compra']).sum()
-        utilidad = total_ventas - total_costos
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Ingresos", f"${total_ventas:,.2f}")
-        m2.metric("Costos", f"${total_costos:,.2f}")
-        m3.metric("Utilidad", f"${utilidad:,.2f}")
-        st.dataframe(df_corte, use_container_width=True)
-    else:
-        st.info("Sin ventas en este periodo.")
-
-elif choice == " Historial":
-    st.header("Historial de Operaciones")
-    st.subheader("Ventas")
-    st.dataframe(get_df("SELECT * FROM ventas"), use_container_width=True)
-    st.subheader("Apartados")
-    st.dataframe(get_df("SELECT * FROM apartados"), use_container_width=True)
-
-elif choice == " Admin":
-    st.header("Administración de Inventario")
-    with st.form("adm"):
-        c1, c2, c3, c4 = st.columns(4)
-        p = c1.text_input("Producto")
-        m = c2.text_input("Modelo")
-        col = c3.text_input("Color")
-        t = c4.text_input("Talla")
-        s = st.number_input("Stock inicial", 0)
-        pc = st.number_input("Costo Unitario", 0.0)
-        pv = st.number_input("Precio Venta", 0.0)
-        if st.form_submit_button("Guardar en Inventario"):
-            if p and m:
-                run_query("INSERT OR REPLACE INTO inventario VALUES (?,?,?,?,?,?,?,?)", (p,m,col,t,s,pc,pv,""))
-                st.success(f"Producto {p} registrado!")
-            else: st.error("Faltan datos.")
-    
-    if st.button(" Cargar 50 productos demo únicos ahora"):
-        cargar_50_datos()
-        st.rerun()
-
-elif choice == " Respaldos":
-    st.header("Respaldos")
-    if os.path.exists(DB_NAME):
-        with open(DB_NAME, "rb") as f:
-            st.download_button(" Descargar Base de Datos", f, f"Backup_Ilusion_{datetime.now().strftime('%Y%m%d')}.db")
+for fila in filas:
+    cols = st.columns(len(fila))
+    for i, label in enumerate(fila):
+        cols[i].button(label, key=f"btn_{label}_{filas.index(fila)}_{i}", 
+                       on_click=click_button, args=(label,), 
+                       use_container_width=True)
