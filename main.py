@@ -35,34 +35,41 @@ def get_df(query, params=()):
     with sqlite3.connect(DB_NAME) as conn:
         return pd.read_sql_query(query, conn, params=params)
 
-# --- FUNCIÓN PARA CARGAR 50 DATOS DE PRUEBA DIVERSIFICADOS ---
+# --- FUNCIÓN PARA CARGAR 50 DATOS ÚNICOS ---
 def cargar_50_datos():
-    productos_base = [
-        "Bra Push Up", "Panty Clásico", "Faja Reductora", "Pijama Seda", "Baby Doll", 
-        "Bra Deportivo", "Body Encaje", "Top Juvenil", "Bóxer Dama", "Camisón Satin",
-        "Corset Elegance", "Leggings Control", "Bralette Encaje", "Panty Invisible",
-        "Faja Postparto", "Tanga Algodón", "Short Nocturno", "Bata de Baño",
-        "Bra Sin Costuras", "Body Shaper", "Cachetero Encaje", "Top Básico"
+    # Lista de 50 nombres de productos totalmente diferentes
+    productos_unicos = [
+        "Bra Push Up Encaje", "Panty Clásico Algodón", "Faja Reductora Abdomen", "Pijama Seda Dos Piezas", 
+        "Baby Doll Transparencia", "Bra Deportivo Alto Impacto", "Body Encaje Floral", "Top Juvenil Algodón", 
+        "Bóxer Dama Microfibra", "Camisón Satin Largo", "Corset Elegance Negro", "Leggings Control Total", 
+        "Bralette Encaje Suave", "Panty Invisible Laser", "Faja Postparto Reforzada", "Tanga Algodón Elástico", 
+        "Short Nocturno Satin", "Bata de Baño Afelpada", "Bra Sin Costuras Confort", "Body Shaper Moldeador", 
+        "Cachetero Encaje Lujo", "Top Básico Tirantes", "Bra Strapless Silicon", "Panty Corte Alto", 
+        "Bustier Vintage Blanco", "Faja Tipo Short", "Pijama Térmica Invierno", "Negligee Bordado", 
+        "Bra Maternidad Lactancia", "Tanga de Hilo Satin", "Body de Red Moderno", "Minifalda Dormir Seda", 
+        "Bra Media Copa", "Panty Semicachetero", "Cinturilla de Avispa", "Bata Corta Translúcida", 
+        "Bra de Copas Blandas", "Short Deportivo Ajustado", "Pijama de Short y Top", "Camiseta Interior Seda", 
+        "Bra con Varilla Reforzada", "Panty Postoperatorio", "Faja Chaleco Neopreno", "Body Manga Larga Encaje", 
+        "Top de Yoga Transpirable", "Bóxer Largo Descanso", "Bra de Cobertura Total", "Tanga con Pedrería", 
+        "Pijama Estampada Algodón", "Bata Kimono Satín"
     ]
     
-    modelos = [f"MOD-{i:03d}" for i in range(101, 300)]
     colores = ["Negro", "Blanco", "Nude", "Rojo", "Azul Marino", "Rosa Pastel", "Vino", "Gris Acero", "Marfil", "Verde Esmeralda"]
     tallas = ["CH", "M", "G", "XG", "32B", "34B", "36B", "38B", "40C"]
-
+    
     datos_inventario = []
     
-    while len(datos_inventario) < 50:
-        prod = random.choice(productos_base)
-        mod = random.choice(modelos)
+    # Usamos un bucle for sobre la lista de 50 productos para asegurar que cada uno sea diferente
+    for i in range(50):
+        prod = productos_unicos[i]
+        mod = f"MOD-{100 + i}" # Modelos únicos del 100 al 149
         col = random.choice(colores)
         tal = random.choice(tallas)
+        stock = random.randint(5, 50)
+        p_compra = round(random.uniform(90.0, 450.0), 2)
+        p_venta = round(p_compra * 1.6, 2)
         
-        # Evitar duplicados en la misma carga
-        if not any(x[1] == mod and x[2] == col and x[3] == tal for x in datos_inventario):
-            stock = random.randint(5, 50)
-            p_compra = round(random.uniform(85.0, 420.0), 2)
-            p_venta = round(p_compra * 1.6, 2)
-            datos_inventario.append((prod, mod, col, tal, stock, p_compra, p_venta, ""))
+        datos_inventario.append((prod, mod, col, tal, stock, p_compra, p_venta, ""))
 
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
@@ -127,7 +134,7 @@ if choice == " Inventario":
     df_inv = get_df("SELECT * FROM inventario")
     if df_inv.empty:
         st.warning("El inventario está vacío.")
-        if st.button(" Cargar 50 datos de prueba"):
+        if st.button(" Cargar 50 productos diferentes"):
             cargar_50_datos()
             st.rerun()
     else:
@@ -147,7 +154,7 @@ elif choice == " Punto de Venta":
             talla_sel = st.selectbox("Talla", sorted(df_f['talla'].unique()))
             item = df_f[df_f['talla'] == talla_sel].iloc[0]
             
-            st.info(f"Stock: {item['stock']} | Precio: ${item['p_venta']:,.2f}")
+            st.info(f"Producto: {item['producto']} | Stock: {item['stock']} | Precio: ${item['p_venta']:,.2f}")
             cant = st.number_input("Cantidad", 1, int(item['stock']))
             
             if st.button(" Agregar al Carrito", use_container_width=True):
@@ -164,7 +171,7 @@ elif choice == " Punto de Venta":
         with c2:
             if st.session_state.carrito:
                 st.subheader("Resumen de Venta")
-                st.table(pd.DataFrame(st.session_state.carrito)[['modelo', 'talla', 'cantidad', 'subtotal']])
+                st.table(pd.DataFrame(st.session_state.carrito)[['producto', 'modelo', 'talla', 'cantidad', 'subtotal']])
                 total_v = sum(i['subtotal'] for i in st.session_state.carrito)
                 if st.button(f" Finalizar e Imprimir (${total_v:,.2f})", type="primary", use_container_width=True):
                     t_id = str(uuid.uuid4())[:8].upper()
@@ -185,7 +192,7 @@ elif choice == " Apartados":
     if not df_inv.empty:
         with st.form("ap_f"):
             cli = st.text_input("Nombre de la Clienta")
-            df_inv['lbl'] = df_inv['modelo'] + " | " + df_inv['color'] + " (" + df_inv['talla'] + ")"
+            df_inv['lbl'] = df_inv['producto'] + " (" + df_inv['modelo'] + ")"
             sel = st.selectbox("Prenda", df_inv['lbl'])
             cnt = st.number_input("Cant", 1)
             if st.form_submit_button("Guardar Apartado"):
@@ -194,6 +201,7 @@ elif choice == " Apartados":
                 run_query("INSERT INTO apartados VALUES (?,?,?,?,?,?,?,?,?)", (ap_id, cli, datetime.now().strftime("%Y-%m-%d"), r['producto'], r['modelo'], r['color'], r['talla'], cnt, "ACTIVO"))
                 run_query("UPDATE inventario SET stock = stock - ? WHERE modelo=? AND color=? AND talla=?", (cnt, r['modelo'], r['color'], r['talla']))
                 st.session_state.ticket_a_imprimir = generar_ticket_html("VALE APARTADO", ap_id, [{'modelo': r['modelo'], 'cantidad': cnt, 'subtotal': r['p_venta']*cnt}], r['p_venta']*cnt, cliente=cli)
+                st.success("Apartado registrado")
                 st.rerun()
     else:
         st.info("No hay productos disponibles para apartar.")
@@ -237,8 +245,8 @@ elif choice == " Admin":
     st.header("Administración de Inventario")
     with st.form("adm"):
         c1, c2, c3, c4 = st.columns(4)
-        p = c1.text_input("Producto (ej. Bra)")
-        m = c2.text_input("Modelo (ej. MOD-01)")
+        p = c1.text_input("Producto")
+        m = c2.text_input("Modelo")
         col = c3.text_input("Color")
         t = c4.text_input("Talla")
         s = st.number_input("Stock inicial", 0)
@@ -247,11 +255,10 @@ elif choice == " Admin":
         if st.form_submit_button("Guardar en Inventario"):
             if p and m:
                 run_query("INSERT OR REPLACE INTO inventario VALUES (?,?,?,?,?,?,?,?)", (p,m,col,t,s,pc,pv,""))
-                st.success("Producto registrado!")
-                st.rerun()
+                st.success(f"Producto {p} registrado!")
             else: st.error("Faltan datos.")
     
-    if st.button(" Cargar 50 datos demo ahora"):
+    if st.button(" Cargar 50 productos demo únicos ahora"):
         cargar_50_datos()
         st.rerun()
 
