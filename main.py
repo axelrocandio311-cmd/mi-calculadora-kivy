@@ -5,163 +5,122 @@ from datetime import datetime
 import uuid
 
 # --- CONFIGURACIÓN DE BASE DE DATOS ---
-DB_NAME = "agencia_hypercars_pro.db"
+DB_NAME = "agencia_hypercars_visual.db"
 
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS inventario 
-                          (modelo TEXT, marca TEXT, motor TEXT, edicion TEXT, 
-                           stock INTEGER, p_compra REAL, p_venta REAL, imagen_url TEXT,
-                           PRIMARY KEY (modelo, marca, edicion))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS ventas 
-                          (transaccion_id TEXT, fecha TEXT, vehiculo TEXT, total REAL, cliente TEXT)''')
+                          (modelo TEXT, marca TEXT, motor TEXT, precio REAL)''')
         conn.commit()
 
-# --- DATOS REALES (AQUÍ METES LOS LINKS A MANO) ---
-def cargar_70_hypercars():
-    # FORMATO: (Modelo, Marca, Motor, Edición, Stock, Compra, Venta, "LINK_DE_GOOGLE_AQUÍ")
-    autos = [
-        ("Chiron Super Sport 300+", "Bugatti", "8.0L W16 Quad-Turbo", "Record Edition", 1, 3.2, 3.9, "https://tu-link-aqui.com/imagen.jpg"),
-        ("Jesko Absolut", "Koenigsegg", "5.0L V8 Twin-Turbo", "Top Speed", 1, 2.5, 3.1, ""),
-        ("Utopia", "Pagani", "6.0L V12 Twin-Turbo", "Manual Heritage", 1, 2.1, 2.5, ""),
-        ("Veneno Roadster", "Lamborghini", "6.5L V12 N/A", "Anniversary", 1, 4.0, 4.5, ""),
-        ("Valkyrie AMR Pro", "Aston Martin", "6.5L V12 Cosworth", "Track Only", 1, 3.1, 3.5, ""),
-        ("Nevera", "Rimac", "Quad-Motor Electric", "Time Attack", 2, 1.8, 2.2, ""),
-        ("Solus GT", "McLaren", "5.2L V10 N/A", "Single Seater", 1, 2.0, 2.4, ""),
-        ("Daytona SP3", "Ferrari", "6.5L V12 N/A", "Icona Series", 1, 2.0, 2.3, ""),
-        ("Gemera", "Koenigsegg", "2.0L i3 TFG Hybrid", "Founders Edition", 2, 1.5, 1.7, ""),
-        ("Mistral", "Bugatti", "8.0L W16 Quad-Turbo", "Final W16", 1, 4.5, 5.0, ""),
-        # ... Sigue llenando hasta los 70 registros
+# --- 1. SECCIÓN DE AUTOS PRINCIPALES (EDITA AQUÍ TUS LINKS) ---
+# Aquí es donde pondrás manualmente los autos que quieres que brillen en la vitrina
+def obtener_autos_principales():
+    return [
+        {
+            "marca": "Bugatti", 
+            "modelo": "Chiron Super Sport", 
+            "precio": "3.9M USD", 
+            "imagen": "LINK_DE_GOOGLE_AQUI"
+        },
+        {
+            "marca": "Koenigsegg", 
+            "modelo": "Jesko Absolut", 
+            "precio": "3.1M USD", 
+            "imagen": "LINK_DE_GOOGLE_AQUI"
+        },
+        {
+            "marca": "Ferrari", 
+            "modelo": "LaFerrari", 
+            "precio": "4.0M USD", 
+            "imagen": "LINK_DE_GOOGLE_AQUI"
+        },
+        {
+            "marca": "Pagani", 
+            "modelo": "Huayra BC", 
+            "precio": "3.5M USD", 
+            "imagen": "LINK_DE_GOOGLE_AQUI"
+        }
     ]
-    
-    # Relleno automático de marcas reales para completar los 70 (Tú puedes editar estos nombres abajo)
-    marcas_pool = ["Ferrari", "Lamborghini", "McLaren", "Bugatti", "Pagani", "Koenigsegg", "Hennessey", "Aston Martin"]
-    while len(autos) < 70:
-        m = marcas_pool[len(autos) % len(marcas_pool)]
-        autos.append((f"Hyper-Model {len(autos)}", m, "V12 Twin-Turbo", "Limited Edition", 1, 1.5, 1.9, ""))
 
+# --- 2. SECCIÓN DE INVENTARIO (LOS 70 REGISTROS TÉCNICOS) ---
+def cargar_70_registros_inventario():
+    marcas = ["Ferrari", "Lamborghini", "McLaren", "Bugatti", "Pagani", "Koenigsegg", "Aston Martin", "Rimac"]
+    autos_inv = []
+    for i in range(1, 71):
+        m = marcas[i % len(marcas)]
+        autos_inv.append((f"Modelo Spec-{i}", m, "V12 / Hybrid", 1.5 + (i * 0.1)))
+    
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.executemany('INSERT OR REPLACE INTO inventario VALUES (?,?,?,?,?,?,?,?)', autos)
+        cursor.execute("DELETE FROM inventario")
+        cursor.executemany('INSERT INTO inventario VALUES (?,?,?,?)', autos_inv)
         conn.commit()
 
-# --- ESTILOS CSS ---
-def aplicar_estilos():
-    st.markdown("""
-        <style>
-        .main { background-color: #0e1117; }
-        .car-card {
-            background-color: #1a1c23;
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid #d4af37;
-            text-align: center;
-            margin-bottom: 25px;
-            transition: transform 0.3s;
-        }
-        .car-card:hover { transform: scale(1.02); }
-        .img-container {
-            width: 100%;
-            height: 220px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #000;
-            border-radius: 10px;
-        }
-        .img-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; /* Mantiene proporción sin deformar */
-        }
-        .price-text {
-            color: #d4af37;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-# --- LÓGICA PRINCIPAL ---
+# --- CONFIGURACIÓN VISUAL ---
 st.set_page_config(page_title="Hypercar Agency", layout="wide")
-aplicar_estilos()
+
+st.markdown("""
+    <style>
+    .vitrina-card {
+        background-color: #1a1c23;
+        padding: 20px;
+        border-radius: 15px;
+        border: 2px solid #d4af37;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .img-vitrina {
+        width: 100%;
+        height: 250px;
+        background-color: #000;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .img-vitrina img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .precio-v { color: #d4af37; font-size: 24px; font-weight: bold; }
+    </style>
+    """, unsafe_allow_html=True)
+
 init_db()
+cargar_70_registros_inventario()
 
-# Carga inicial si la DB está vacía
-db_check = sqlite3.connect(DB_NAME)
-if pd.read_sql_query("SELECT COUNT(*) FROM inventario", db_check).iloc[0,0] == 0:
-    cargar_70_hypercars()
-db_check.close()
-
+# --- NAVEGACIÓN ---
 st.sidebar.title("💎 EXOTIC MOTORS")
-menu = ["Autos Principales", "Inventario", "Cerrar Venta"]
-choice = st.sidebar.selectbox("Navegación", menu)
+menu = st.sidebar.selectbox("Ir a:", ["Autos Principales", "Inventario"])
 
-if choice == "Autos Principales":
-    st.title("🏛️ Showroom: Autos Principales")
-    df = pd.read_sql_query("SELECT * FROM inventario", sqlite3.connect(DB_NAME))
+if menu == "Autos Principales":
+    st.title("🏛️ Vitrina de Exhibición")
+    st.write("Selección exclusiva de la agencia con imágenes reales.")
     
-    cols = st.columns(3)
-    for idx, row in df.iterrows():
-        with cols[idx % 3]:
-            # Imagen por defecto si el link está vacío en el código
-            img_src = row['imagen_url'] if row['imagen_url'] != "" else "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?q=80&w=1000&auto=format&fit=crop"
+    autos_destacados = obtener_autos_principales()
+    
+    cols = st.columns(2) # Dos autos por fila para que se vean grandes
+    for idx, auto in enumerate(autos_destacados):
+        with cols[idx % 2]:
+            # Imagen por defecto si no has puesto el link
+            img_url = auto['imagen'] if "LINK" not in auto['imagen'] else "https://via.placeholder.com/600x400/000/d4af37?text=Hypercar+VIP"
             
             st.markdown(f"""
-                <div class="car-card">
-                    <div class="img-container">
-                        <img src="{img_src}">
-                    </div>
-                    <h2 style="color:white; margin-top:15px;">{row['marca']}</h2>
-                    <h4 style="color:#aaa;">{row['modelo']}</h4>
-                    <p class="price-text">${row['p_venta']:,.1f}M USD</p>
-                    <p style="font-size:13px; color:#777;">{row['edicion']} | {row['motor']}</p>
+                <div class="vitrina-card">
+                    <div class="img-vitrina"><img src="{img_url}"></div>
+                    <h2 style="margin-top:15px; color:white;">{auto['marca']} {auto['modelo']}</h2>
+                    <p class="precio-v">{auto['precio']}</p>
                 </div>
-                """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-elif choice == "Inventario":
-    st.title("📋 Registro Técnico de Inventario")
-    df_inv = pd.read_sql_query("SELECT marca, modelo, edicion, motor, stock, p_venta FROM inventario", sqlite3.connect(DB_NAME))
+elif menu == "Inventario":
+    st.title("📋 Registro General de Inventario")
+    st.write("Listado técnico de los 70 vehículos en stock.")
     
-    # Formateo visual de la tabla
-    df_inv['p_venta'] = df_inv['p_venta'].apply(lambda x: f"${x:,.2f}M USD")
-    st.dataframe(df_inv, use_container_width=True, height=700)
-
-elif choice == "Cerrar Venta":
-    st.title("🤝 Finalizar Negociación")
+    df = pd.read_sql_query("SELECT marca as Marca, modelo as Modelo, motor as Motorización, precio as 'Precio (M USD)' FROM inventario", sqlite3.connect(DB_NAME))
     
-    with sqlite3.connect(DB_NAME) as conn:
-        disponibles = pd.read_sql_query("SELECT * FROM inventario WHERE stock > 0", conn)
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        seleccion = st.selectbox("Vehículo a Entregar", disponibles['marca'] + " " + disponibles['modelo'])
-        cliente = st.text_input("Nombre del Cliente VIP")
-        
-        # Datos del auto seleccionado
-        auto = disponibles[disponibles['marca'] + " " + disponibles['modelo'] == seleccion].iloc[0]
-        
-        st.info(f"**Monto de Operación:** ${auto['p_venta']:,.1f}M USD")
-        
-        if st.button("Confirmar Venta y Generar Registro"):
-            if cliente:
-                t_id = "TRANS-" + str(uuid.uuid4())[:6].upper()
-                # Guardar venta
-                with sqlite3.connect(DB_NAME) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("INSERT INTO ventas VALUES (?,?,?,?,?)", 
-                                  (t_id, datetime.now().strftime("%Y-%m-%d"), seleccion, auto['p_venta'], cliente))
-                    cursor.execute("UPDATE inventario SET stock = stock - 1 WHERE modelo = ?", (auto['modelo'],))
-                    conn.commit()
-                st.balloons()
-                st.success(f"Operación Exitosa: {seleccion} asignado a {cliente}.")
-            else:
-                st.error("Se requiere el nombre del adquirente.")
-
-    with c2:
-        st.subheader("Últimas Adquisiciones")
-        historial = pd.read_sql_query("SELECT fecha, vehiculo, cliente FROM ventas ORDER BY fecha DESC", sqlite3.connect(DB_NAME))
-        st.table(historial)
+    st.dataframe(df, use_container_width=True, height=800)
