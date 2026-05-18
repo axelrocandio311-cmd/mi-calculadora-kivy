@@ -17,8 +17,7 @@ def init_db():
                           (id TEXT, fecha TEXT, vehiculo TEXT, cliente TEXT, total REAL)''')
         conn.commit()
 
-# --- 1. SECCIÓN: AUTOS PRINCIPALES (EDITA AQUÍ TUS LINKS) ---
-# Aquí puedes pegar los links de internet O los códigos que empiezan con "data:image..."
+# --- 1. SECCIÓN: AUTOS PRINCIPALES ---
 def obtener_destacados():
     return [
         {
@@ -26,7 +25,8 @@ def obtener_destacados():
             "modelo": "Chiron Super Sport 300+", 
             "precio": 3.9, 
             "motor": "8.0L W16 Quad-Turbo",
-            "img": "data:image/jpeg;base64,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"
+            # Aquí colocamos tu nuevo link de alta calidad
+            "img": "https://www.bugattiofgreenwich.com/wp-content/themes/aanWordpress/images/model_pages/chiron-sport-300/chiron-sport-300-2.png"
         },
         {
             "marca": "Koenigsegg", 
@@ -39,9 +39,8 @@ def obtener_destacados():
 
 # --- 2. SECCIÓN: INVENTARIO (DATOS TÉCNICOS REALES) ---
 def cargar_inventario_completo():
-    # Aquí están los datos técnicos reales: Marca, Modelo, Motor, Edición, Precio
     datos = [
-        ("Chiron SS 300+", "Bugatti", "8.0L W16 Quad-Turbo", "Record Edition", 1, 3.9),
+        ("Chiron Super Sport 300+", "Bugatti", "8.0L W16 Quad-Turbo", "Record Edition", 1, 3.9),
         ("Jesko Absolut", "Koenigsegg", "5.0L V8 Twin-Turbo", "Top Speed", 1, 3.1),
         ("Utopia", "Pagani", "6.0L V12 Twin-Turbo", "Manual Heritage", 1, 2.5),
         ("Revuelto", "Lamborghini", "6.5L V12 Hybrid", "Launch Edition", 2, 0.7),
@@ -51,7 +50,6 @@ def cargar_inventario_completo():
         ("Daytona SP3", "Ferrari", "6.5L V12 N/A", "Icona Series", 1, 2.3),
         ("Gemera", "Koenigsegg", "2.0L i3 TFG Hybrid", "Family Hypercar", 1, 1.7),
         ("Mistral", "Bugatti", "8.0L W16 Quad-Turbo", "Roadster", 1, 5.0),
-        # Se rellena hasta 70 registros con variaciones coherentes
     ]
     
     marcas_pool = ["Ferrari", "Lamborghini", "McLaren", "Bugatti", "Pagani", "Koenigsegg", "Aston Martin"]
@@ -82,8 +80,8 @@ if menu == "Autos Principales":
     cols = st.columns(2)
     for i, auto in enumerate(destacados):
         with cols[i % 2]:
-            # Manejo de imagen (URL o Base64)
             img_src = auto['img'] if "LINK" not in auto['img'] else "https://via.placeholder.com/500x300/000/d4af37?text=Hypercar"
+            
             st.markdown(f"""
                 <div style="background-color:#111; padding:20px; border-radius:15px; border:1px solid #d4af37; text-align:center; margin-bottom:20px;">
                     <img src="{img_src}" style="width:100%; height:250px; object-fit:contain; border-radius:10px;">
