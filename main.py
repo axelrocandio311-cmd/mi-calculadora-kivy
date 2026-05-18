@@ -25,7 +25,6 @@ def obtener_destacados():
             "modelo": "Chiron Super Sport 300+", 
             "precio": 3.9, 
             "motor": "8.0L W16 Quad-Turbo",
-            # Aquí colocamos tu nuevo link de alta calidad
             "img": "https://www.bugattiofgreenwich.com/wp-content/themes/aanWordpress/images/model_pages/chiron-sport-300/chiron-sport-300-2.png"
         },
         {
@@ -33,7 +32,8 @@ def obtener_destacados():
             "modelo": "Jesko Absolut", 
             "precio": 3.1, 
             "motor": "5.0L V8 Twin-Turbo",
-            "img": "LINK_AQUI"
+            # Aquí se adaptó tu nuevo link para el Jesko
+            "img": "https://octane.rent/wp-content/uploads/2025/09/Koenigsegg_Jesko_1.jpg"
         }
     ]
 
@@ -82,9 +82,10 @@ if menu == "Autos Principales":
         with cols[i % 2]:
             img_src = auto['img'] if "LINK" not in auto['img'] else "https://via.placeholder.com/500x300/000/d4af37?text=Hypercar"
             
+            # Nota: Usamos object-fit: cover para que la foto de ambiente del Jesko llene bien el recuadro
             st.markdown(f"""
                 <div style="background-color:#111; padding:20px; border-radius:15px; border:1px solid #d4af37; text-align:center; margin-bottom:20px;">
-                    <img src="{img_src}" style="width:100%; height:250px; object-fit:contain; border-radius:10px;">
+                    <img src="{img_src}" style="width:100%; height:250px; object-fit:cover; border-radius:10px;">
                     <h2 style="color:white; margin-top:10px;">{auto['marca']} {auto['modelo']}</h2>
                     <p style="color:#d4af37; font-size:22px; font-weight:bold;">${auto['precio']}M USD</p>
                     <p style="color:#888;">{auto['motor']}</p>
